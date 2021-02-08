@@ -2,12 +2,12 @@
 version: '3'
 
 services:
-  {{ serviceName }}:
-    image: redis:{{ image.tag }}
-    command: redis-server {% if usePassword %}--requirepass {{ password }}{% endif %}
-    {% if persistence.enabled %}
+  {{ Values.serviceName }}:
+    image: redis:{{ Values.image.tag }}
+    command: redis-server {% if Values.usePassword %}--requirepass {{ Values.password }}{% endif %}
+    {% if Values.persistence.enabled %}
     volumes:
-      - {{ serviceName }}_data:/data
+      - {{ Values.serviceName }}_data:/data
     {% endif %}
     deploy:
       mode: replicated
@@ -17,26 +17,26 @@ services:
         constraints:
           - node.role == worker
       {% endif %}
-      {% if resources.enabled %}
+      {% if Values.resources.enabled %}
       resources:
         limits:
-          memory: {{ resources.memory }}
-          cpus: {{ resources.cpus }}
+          memory: {{ Values.resources.memory }}
+          cpus: {{ Values.resources.cpus }}
       {% endif %}
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: {{ healthcheck.interval }}
-      timeout: {{ healthcheck.timeout }}
+      interval: {{ Values.healthcheck.interval }}
+      timeout: {{ Values.healthcheck.timeout }}
 
-  {% if metrics.enabled %}
-  {{ serviceName }}_exporter:
+  {% if Values.metrics.enabled %}
+  {{ Values.serviceName }}_exporter:
     image: oliver006/redis_exporter:latest
     environment:
-      REDIS_ADDR: redis://{% if usePassword %}:{{ password }}@{% endif %}{{ serviceName }}:6379
+      REDIS_ADDR: redis://{% if Values.usePassword %}:{{ Values.password }}@{% endif %}{{ Values.serviceName }}:6379
     depends_on:
-      - {{ serviceName }}
+      - {{ Values.serviceName }}
     networks:
-      - {{ metrics.network }}
+      - {{ Values.metrics.network }}
     deploy:
       mode: replicated
       replicas: 1
@@ -47,18 +47,18 @@ services:
       {% endif %}
   {% endif %}
 
-{% if persistence.enabled %}
+{% if Values.persistence.enabled %}
 volumes:
-  {{ serviceName }}_data:
-    driver: {{ persistence.driver }}
-    {% if persistence.driver == 'rbd' %}
+  {{ Values.serviceName }}_data:
+    driver: {{ Values.persistence.driver }}
+    {% if Values.persistence.driver == 'rbd' %}
     driver_opts:
-      size: {{ persistence.size }}
+      size: {{ Values.persistence.size }}
     {% endif %}
 {% endif %}
 
-{% if metrics.enabled %}
+{% if Values.metrics.enabled %}
 networks:
-  {{ metrics.network }}:
+  {{ Values.metrics.network }}:
     external: true
 {% endif %}
