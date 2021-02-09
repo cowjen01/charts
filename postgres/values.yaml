@@ -1,0 +1,35 @@
+serviceName: postgres
+
+image:
+  tag: 12
+
+username: postgres
+database: postgres
+password: 12345
+
+healthcheck:
+  interval: 60s
+  timeout: 20s
+
+resources:
+  enabled: false
+  memory: 512M
+  cpus: 0.5
+
+persistence:
+  enabled: false
+  driver: local
+  size: 1024
+
+backup:
+  enabled: false
+  imageTag: v1.2.0
+  endpoint: fooo
+  bucket: foo
+  accessKey: foo
+  secretKey: fooo
+  s3v2signature: false 
+
+metrics:
+  enabled: false
+  network: prometheus_net

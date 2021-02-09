@@ -1,0 +1,11 @@
+[default]
+access_key = {{ backup.accessKey }}
+secret_key = {{ backup.secretKey }}
+host_base = {{ backup.endpoint }}
+host_bucket = {{ backup.endpoint }}
+use_https = True
+{% if backup.s3v2signature %}
+signature_v2 = True
+{% endif %}
+check_ssl_certificate = True
+check_ssl_hostname = True

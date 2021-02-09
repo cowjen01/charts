@@ -1,0 +1,3 @@
+description: Basic Postgresql chart
+name: postgresql
+version: 1.0.0

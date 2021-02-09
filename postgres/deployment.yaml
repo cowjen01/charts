@@ -1,0 +1,99 @@
+{% set development = development|default(false) %}
+version: '3.8'
+
+services:
+  {{ serviceName }}:
+    image: postgres:{{ image.tag }}
+    environment:
+      POSTGRES_USER: {{ username }}
+      POSTGRES_DB: {{ database }}
+      POSTGRES_PASSWORD: {{ password }}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    {% if persistence.enabled %}
+    volumes:
+      - {{ serviceName }}_data:/var/lib/postgresql/data
+    {% endif %}
+    deploy:
+      mode: replicated
+      replicas: 1
+      {% if not development %}
+      placement:
+        constraints:
+          - node.role == worker
+      {% endif %}
+      {% if resources.enabled %}
+      resources:
+        limits:
+          memory: {{ resources.memory }}
+          cpus: {{ resources.cpus }}
+      {% endif %}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: {{ healthcheck.interval }}
+      timeout: {{ healthcheck.timeout }}
+
+#  {% if backup.enabled %}
+#  {{ serviceName }}_backup:
+#    # TODO solve image repository
+#    image: ../postgres-backup:{{ backup.imageTag }}
+#    depends_on:
+#      - {{ serviceName }}
+#    configs:
+#      - source: s3cmd_config
+#        target: /s3/config
+#    environment:
+#      S3_BUCKET: {{ backup.bucket }}
+#      POSTGRES_HOST: {{ serviceName }}
+#      POSTGRES_DATABASE: {{ database }}
+#      POSTGRES_USER: {{ username }}
+#      POSTGRES_PASSWORD: {{ password }}
+#    deploy:
+#      mode: replicated
+#      replicas: 1
+#      {% if not development %}
+#      placement:
+#        constraints:
+#          - node.role == worker
+#      {% endif %}
+#  {% endif %}
+
+  {% if metrics.enabled %}
+  {{ serviceName }}_exporter:
+    image: wrouesnel/postgres_exporter:latest
+    depends_on:
+      - {{ serviceName }}
+    environment:
+      DATA_SOURCE_NAME: postgres://{{ username }}:{{ password }}@{{ serviceName }}:5432/{{ database }}?sslmode=disable
+    networks:
+      - {{ metrics.network }}
+    deploy:
+      mode: replicated
+      replicas: 1
+      {% if not development %}
+      placement:
+        constraints:
+          - node.role == worker
+      {% endif %}
+  {% endif %}
+
+configs:
+  {% if backup.enabled %}
+  s3cmd_config:
+    file: ./configs/s3cfg.conf
+  {% endif %}
+  
+{% if persistence.enabled %}
+volumes:
+  {{ serviceName }}_data:
+    driver: {{ persistence.driver }}
+    {% if persistence.driver == 'rbd' %}
+    driver_opts:
+      size: {{ persistence.size }}
+    {% endif %}
+{% endif %}
+
+{% if metrics.enabled %}
+networks:
+  {{ metrics.network }}:
+    external: true
+{% endif %}
